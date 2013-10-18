@@ -436,12 +436,14 @@ public class PersonalClouds {
 											@FormParam("failureurl") String failureurl,
 											@FormParam("cloudname") String cloudname,
 											@FormParam("relayState") String relayState,
+											@FormParam("buttonClicked") String buttonClicked,
 											@FormParam("fieldchoices") List<String> fieldChoices)
                                  
 	{
 		//HttpServletRequest request = mc.getHttpServletRequest();
 		//String [] selectedValues = request.getParameterValues("fieldchoices");
 		System.out.println("\n\n\nConnect Approve endpoint -> connect/approve\n\n\n");
+		System.out.println("Clicked="+buttonClicked);
 		//System.out.println(fieldChoices);
 		System.out.println("All passwords:\n" + passwordMap + "\n");
 		String secrettoken = null;
@@ -459,6 +461,9 @@ public class PersonalClouds {
         }
 
 		PersonalCloud pc = PersonalCloud.open(XDI3Segment.create(respondingPartyCloudNumber),secrettoken,XDI3Segment.create("$do"),"");
+		if (buttonClicked != null && buttonClicked.equals("Reject")) {
+			return pc.autoSubmitRejectForm(cloudname,connectRequest,failureurl,relayState);
+		}
 		String [] selectedValues = fieldChoices.toArray(new String[fieldChoices.size()]);
 		return pc.processApprovalForm(linkContractTemplateAddress, relyingPartyCloudNumber, respondingPartyCloudNumber, secrettoken,selectedValues,successurl,failureurl,cloudname,relayState);
 		//return new String("<html><body>Hello World!</body></html>");
@@ -466,17 +471,17 @@ public class PersonalClouds {
   @GET @Path("/disconnect/admin/")
   @Produces(MediaType.TEXT_HTML)
   public String showDisconnectForm() {
-	String result = new String("<html><body><div><br>");
-	result += "<SCRIPT LANGUAGE=\"JavaScript\">";
-	result += "function buttonClick(val){ document.getElementById('buttonClicked').value = val; return true; }";
-	result += "</SCRIPT>";
-	result += "<form action=\"http://mycloud.neustar.biz:8080/myapp/personalclouds/disconnect/process/\" method=\"POST\">"; 
-	result += "Connection to (ACME/Bob) cloud number ([@]!:uuid:e0178407-b7b6-43f9-e017-8407b7b643f9) : <input type=\"text\" name=\"requestingparty\"  /> <br>";
-	result += "Connection from (Alice)cloud number ([=]!:uuid:0707f2ff-4266-9f14-0707-f2ff42669f14) : <input type=\"text\" name=\"respondingparty\"  /> <br>";
+	String result = new String("<html><head>");
+	result += "<script language=\"JavaScript\">";
+	result += "function buttonClick(val){ document.getElementById(\"buttonClicked\").value = val; } ";
+	result += "</script></head><body><div>";
+	result += "<form action=\"http://mycloud.neustar.biz:8080/myapp/personalclouds/disconnect/process/\" name=\"adminForm\" method=\"POST\">"; 
+	result += "Connection to (ACME/Bob) cloud number ( [@]!:uuid:e0178407-b7b6-43f9-e017-8407b7b643f9 ) : <input type=\"text\" name=\"requestingparty\"  /> <br>";
+	result += "Connection from (Alice)cloud number ( [=]!:uuid:0707f2ff-4266-9f14-0707-f2ff42669f14 ) : <input type=\"text\" name=\"respondingparty\"  /> <br>";
 	result += "(Alice's) password : <input type=\"password\" name=\"secrettoken\"  /> <br>";
-	result += "<input type=\"hidden\" name=\"buttonClicked\" id=\"buttonClicked\"  /> <br>";
-	result += "<input type=\"submit\" value=\"Disconnect\" onclick=\"return handleClick('Disconnect')\"/>";
-	result += "<input type=\"submit\" value=\"Logout\" onclick=\"return handleClick('Logout')\"/>";
+	result += "<input type=\"hidden\" name=\"bClicked\" id=\"buttonClicked\"  /> <br>";
+	result += "<input type=\"submit\" value=\"Disconnect\" onclick=\" buttonClick('Disconnect'); return true;\"/>";
+	result += "<input type=\"submit\" value=\"Logout\" onclick=\" buttonClick('Logout'); return true;\"/>";
 	result += "</form></div></body></html>";
 
    return result;
@@ -485,14 +490,19 @@ public class PersonalClouds {
 	@Produces(MediaType.TEXT_HTML)
 	public String processDisconnect(@FormParam("requestingparty") String requestingparty,
 												@FormParam("respondingparty") String respondingparty,
-												@FormParam("buttonClicked") String buttonClicked,
+												@FormParam("bClicked") String buttonClicked,
 												@FormParam("secrettoken") String secrettoken)
 	{
 		PersonalCloud pc = PersonalCloud.open(XDI3Segment.create(respondingparty),secrettoken,XDI3Segment.create("$do"),"");
-		if(buttonClicked.equals("Disconnect")) {
+		System.out.println("Clicked="+buttonClicked);
+		if(buttonClicked != null && buttonClicked.equals("Disconnect")) {
 			return pc.processDisconnectRequest(requestingparty,respondingparty);
 		} else {
-			passwordMap.remove(respondingparty);
+			if (respondingparty != null) {
+				passwordMap.remove(respondingparty);
+			} else {
+				System.out.println("respondingparty is not provided!");
+			}
 			return new String("<html><body>Session Cache has been removed for the user</body></html>");
 		}
 	}
