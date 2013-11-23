@@ -406,6 +406,16 @@ public class PersonalClouds {
 		System.out.println("secrettoken is not null. It is " + secrettoken);
 		Date now = new Date();
 		PersonalCloud pc = PersonalCloud.open(XDI3Segment.create(respondingPartyCloudNumber),secrettoken,XDI3Segment.create("$do"),"");
+		if (pc == null) {
+			resultHTML = "<html><body>Personal Cloud could not be opened. Please verify authentication information!</body></html>";
+            InputStream entity = null;
+            try{
+               entity = new ByteArrayInputStream( resultHTML.getBytes( "UTF-8" ) );
+            }catch(UnsupportedEncodingException ex){
+               System.out.println("UnsupportedEncodingException");
+            }
+            return Response.ok(entity).build();
+		}
 		if (pc.linkContractExists(connectRequest)) {
 			resultHTML = pc.autoSubmitForm(cloudname,connectRequest,successurl,relayState);
 		}
